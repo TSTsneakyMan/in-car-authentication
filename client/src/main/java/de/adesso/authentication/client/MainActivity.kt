@@ -1,6 +1,12 @@
 package de.adesso.authentication.client
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
+import android.provider.Telephony
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -9,11 +15,27 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import de.adesso.authentication.client.databinding.ActivityMainBinding
+import de.adesso.authentication.client.network.P2PService
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
+    private var p2pService: P2PService? = null
+    private var isBound = false
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName,
+                                        service: IBinder
+        ) {
+            val binder = service as P2PService.MyLocalBinder
+            p2pService = binder.getService()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,9 +49,9 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
 
-        // TODO: Scan for host here? Then request shared secred for encryption?
+        // TODO: Scan for host here? Then request shared secret for encryption?
         binding.test.setOnClickListener {
-            //onclick
+            p2pService?.connect()
         }
     }
 
@@ -52,6 +74,18 @@ class MainActivity : AppCompatActivity() {
             // Add ids with code here
             else -> super.onOptionsItemSelected(item)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Intent(this, P2PService::class.java).also { intent ->
+            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unbindService(connection)
     }
 
     override fun onSupportNavigateUp(): Boolean {

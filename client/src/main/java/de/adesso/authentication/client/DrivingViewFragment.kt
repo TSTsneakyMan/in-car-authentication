@@ -1,7 +1,6 @@
 package de.adesso.authentication.client
 
-import android.content.ComponentName
-import android.content.ServiceConnection
+import android.content.*
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -10,14 +9,17 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import android.content.Intent
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
-import de.adesso.authentication.client.databinding.FragmentSecondBinding
+import de.adesso.authentication.client.databinding.FragmentDrivingViewBinding
+import de.adesso.authentication.client.network.P2PService
 import java.util.concurrent.Executor
+import android.content.ContentValues.TAG
 
 /**
  * A simple [Fragment] subclass as the second destination in the navigation.
@@ -25,9 +27,8 @@ import java.util.concurrent.Executor
 class DrivingViewFragment : Fragment() {
 
     var isBound = false
-    private var _binding: FragmentSecondBinding? = null
+    private var _binding: FragmentDrivingViewBinding? = null
     var p2pService: P2PService? = null
-
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -39,34 +40,74 @@ class DrivingViewFragment : Fragment() {
     private lateinit var biometricPrompt: BiometricPrompt
     private lateinit var promptInfo: BiometricPrompt.PromptInfo
 
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName,
+                                        service: IBinder
+        ) {
+            val binder = service as P2PService.MyLocalBinder
+            p2pService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
 
-        _binding = FragmentSecondBinding.inflate(inflater, container, false)
+        _binding = FragmentDrivingViewBinding.inflate(inflater, container, false)
 
         // Initialize the Biometric Manager
         bm = BiometricManager.from(requireContext())
         when(bm.canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK)){
-            //TODO: Make proper TAG
             BiometricManager.BIOMETRIC_SUCCESS ->
-                Log.d("MY_APP_TAG", "App can authenticate using biometrics.")
+                Log.d(TAG, "App can authenticate using biometrics.")
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
-                Log.e("MY_APP_TAG", "No biometric features available on this device.")
+                Log.e(TAG, "No biometric features available on this device.")
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
-                Log.e("MY_APP_TAG", "Biometric features are currently unavailable.")
+                Log.e(TAG, "Biometric features are currently unavailable.")
             //TODO: Ask User to set up credentials
         }
         return binding.root
     }
 
+//    override fun onStart() {
+//        super.onStart()
+//        requireActivity().bindService(
+//            Intent(activity, P2PService::class.java),
+//            connection,
+//            Context.BIND_AUTO_CREATE
+//        )
+//    }
+
+    override fun onResume() {
+        super.onResume()
+        requireActivity().bindService(
+            Intent(activity, P2PService::class.java),
+            connection,
+            Context.BIND_AUTO_CREATE
+        )
+    }
+
+    override fun onPause() {
+        super.onPause()
+        requireActivity().unbindService(connection)
+    }
+
+//    override fun onStop() {
+//        super.onStop()
+//        requireActivity().unbindService(connection)
+//    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.buttonSecond.setOnClickListener {
-            findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
+            findNavController().navigate(R.id.action_DrivingViewFragment_to_FirstFragment)
         }
         binding.buttonAuthenticate.setOnClickListener{
             authenticate()
@@ -112,20 +153,6 @@ class DrivingViewFragment : Fragment() {
         // Consider integrating with the keystore to unlock cryptographic operations,
         // if needed by your app.
         biometricPrompt.authenticate(promptInfo)
-    }
-
-    private val myConnection = object : ServiceConnection {
-        override fun onServiceConnected(className: ComponentName,
-                                        service: IBinder
-        ) {
-            val binder = service as P2PService.MyLocalBinder
-            p2pService = binder.getService()
-            isBound = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName) {
-            isBound = false
-        }
     }
 
     override fun onDestroyView() {
