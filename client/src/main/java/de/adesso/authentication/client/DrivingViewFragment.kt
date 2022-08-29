@@ -1,6 +1,9 @@
 package de.adesso.authentication.client
 
+import android.content.ComponentName
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -19,9 +22,12 @@ import java.util.concurrent.Executor
 /**
  * A simple [Fragment] subclass as the second destination in the navigation.
  */
-class SecondFragment : Fragment() {
+class DrivingViewFragment : Fragment() {
 
+    var isBound = false
     private var _binding: FragmentSecondBinding? = null
+    var p2pService: P2PService? = null
+
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -44,6 +50,7 @@ class SecondFragment : Fragment() {
         // Initialize the Biometric Manager
         bm = BiometricManager.from(requireContext())
         when(bm.canAuthenticate(BIOMETRIC_STRONG or BIOMETRIC_WEAK)){
+            //TODO: Make proper TAG
             BiometricManager.BIOMETRIC_SUCCESS ->
                 Log.d("MY_APP_TAG", "App can authenticate using biometrics.")
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
@@ -107,8 +114,24 @@ class SecondFragment : Fragment() {
         biometricPrompt.authenticate(promptInfo)
     }
 
+    private val myConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName,
+                                        service: IBinder
+        ) {
+            val binder = service as P2PService.MyLocalBinder
+            p2pService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        p2pService = null
+        isBound = false
     }
 }

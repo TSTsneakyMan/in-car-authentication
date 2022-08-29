@@ -1,6 +1,9 @@
 package de.adesso.authentication.client
 
+import android.content.ComponentName
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -13,7 +16,10 @@ import de.adesso.authentication.client.databinding.FragmentFirstBinding
  */
 class FirstFragment : Fragment() {
 
+    var isBound = false
     private var _binding: FragmentFirstBinding? = null
+    var p2pService: P2PService? = null
+
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -37,8 +43,24 @@ class FirstFragment : Fragment() {
         }
     }
 
+    private val myConnection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName,
+                                        service: IBinder
+        ) {
+            val binder = service as P2PService.MyLocalBinder
+            p2pService = binder.getService()
+            isBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        p2pService = null
+        isBound = false
     }
 }

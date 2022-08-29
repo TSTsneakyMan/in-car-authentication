@@ -2,6 +2,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.adesso.authentication.host">
 
+    <uses-permission
+        android:required="true"
+        android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission
+        android:required="true"
+        android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission
+        android:required="true"
+        android:name="android.permission.CHANGE_WIFI_STATE"/>
+    <uses-permission
+        android:required="true"
+        android:name="android.permission.INTERNET"/>
+
     <uses-feature
         android:name="android.hardware.type.automotive"
         android:required="true" />
@@ -20,12 +33,14 @@
 
         <service android:name=".MyMessagingService"></service>
 
-        <receiver android:name=".MessageReadReceiver">
+        <receiver android:name=".MessageReadReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="de.adesso.authentication.host.ACTION_MESSAGE_READ" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".MessageReplyReceiver">
+        <receiver android:name=".MessageReplyReceiver"
+            android:exported="true">
             <intent-filter>
                 <action android:name="de.adesso.authentication.host.ACTION_MESSAGE_REPLY" />
             </intent-filter>
