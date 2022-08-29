@@ -27,6 +27,7 @@ class MainActivity : AppCompatActivity() {
         appBarConfiguration = AppBarConfiguration(navController.graph)
         setupActionBarWithNavController(navController, appBarConfiguration)
 
+        // TODO: Scan for host here? Then request shared secred for encryption?
         binding.test.setOnClickListener {
             //onclick
         }
@@ -45,9 +46,10 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return when (item.itemId) {
             R.id.action_settings -> {
-                navController.navigate(R.id.settings)
+//                navController.navigate(R.id.settings)
                 true
             }
+            // Add ids with code here
             else -> super.onOptionsItemSelected(item)
         }
     }
