@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.Authentication" parent="android:Theme.Material.Light.DarkActionBar" />
+</resources>
