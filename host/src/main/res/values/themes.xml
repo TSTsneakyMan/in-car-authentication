@@ -1,4 +1,13 @@
 <resources>
 
     <style name="Theme.Authentication" parent="android:Theme.Material.Light.DarkActionBar" />
+
+    <style name="Theme.Authentication.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="Theme.Authentication.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="Theme.Authentication.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

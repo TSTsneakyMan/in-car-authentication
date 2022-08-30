@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">host</string>
+    <string name="title_activity_host">HostActivity</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="ConnectionFragment_label">Connection Fragment</string>
+    <string name="second_fragment_label">Second Fragment</string>
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+
+    <string name="hello_ConnectionFragment">Make sure both devices are on the same network then press the connection button</string>
+    <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
 </resources>

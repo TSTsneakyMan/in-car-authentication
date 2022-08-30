@@ -22,21 +22,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Authentication">
-        <service
-            android:name=".network.TransferService"
-            android:exported="false"></service>
-
-        <receiver
-            android:name=".network.BroadCastReceiver"
-            android:enabled="true"
-            android:exported="true"
-            android:permission="TODO" />
 
         <service
-            android:name=".P2PIntentService"
-            android:exported="false" />
-        <service
-            android:name=".network.P2PService"
+            android:name=".network.NetworkingService"
             android:enabled="true"
             android:exported="true" />
 

@@ -6,7 +6,6 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
-import android.provider.Telephony
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
@@ -15,21 +14,21 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import android.view.Menu
 import android.view.MenuItem
 import de.adesso.authentication.client.databinding.ActivityMainBinding
-import de.adesso.authentication.client.network.P2PService
+import de.adesso.authentication.client.network.NetworkingService
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
-    private var p2pService: P2PService? = null
+    private var networkingService: NetworkingService? = null
     private var isBound = false
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName,
                                         service: IBinder
         ) {
-            val binder = service as P2PService.MyLocalBinder
-            p2pService = binder.getService()
+            val binder = service as NetworkingService.MyLocalBinder
+            networkingService = binder.getService()
         }
 
         override fun onServiceDisconnected(name: ComponentName) {
@@ -51,7 +50,7 @@ class MainActivity : AppCompatActivity() {
 
         // TODO: Scan for host here? Then request shared secret for encryption?
         binding.test.setOnClickListener {
-            p2pService?.connect()
+            networkingService?.waitForHost()
         }
     }
 
@@ -78,7 +77,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        Intent(this, P2PService::class.java).also { intent ->
+        Intent(this, NetworkingService::class.java).also { intent ->
             bindService(intent, connection, Context.BIND_AUTO_CREATE)
         }
     }

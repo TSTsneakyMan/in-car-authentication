@@ -17,7 +17,7 @@ import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.navigation.fragment.findNavController
 import de.adesso.authentication.client.databinding.FragmentDrivingViewBinding
-import de.adesso.authentication.client.network.P2PService
+import de.adesso.authentication.client.network.NetworkingService
 import java.util.concurrent.Executor
 import android.content.ContentValues.TAG
 
@@ -28,7 +28,7 @@ class DrivingViewFragment : Fragment() {
 
     var isBound = false
     private var _binding: FragmentDrivingViewBinding? = null
-    var p2pService: P2PService? = null
+    var networkingService: NetworkingService? = null
 
     // This property is only valid between onCreateView and
     // onDestroyView.
@@ -44,8 +44,8 @@ class DrivingViewFragment : Fragment() {
         override fun onServiceConnected(className: ComponentName,
                                         service: IBinder
         ) {
-            val binder = service as P2PService.MyLocalBinder
-            p2pService = binder.getService()
+            val binder = service as NetworkingService.MyLocalBinder
+            networkingService = binder.getService()
             isBound = true
         }
 
@@ -87,7 +87,7 @@ class DrivingViewFragment : Fragment() {
     override fun onResume() {
         super.onResume()
         requireActivity().bindService(
-            Intent(activity, P2PService::class.java),
+            Intent(activity, NetworkingService::class.java),
             connection,
             Context.BIND_AUTO_CREATE
         )
@@ -158,7 +158,7 @@ class DrivingViewFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        p2pService = null
+        networkingService = null
         isBound = false
     }
 }

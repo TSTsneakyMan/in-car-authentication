@@ -3,17 +3,17 @@
     package="de.adesso.authentication.host">
 
     <uses-permission
-        android:required="true"
-        android:name="android.permission.ACCESS_FINE_LOCATION"/>
+        android:name="android.permission.ACCESS_FINE_LOCATION"
+        android:required="true" />
     <uses-permission
-        android:required="true"
-        android:name="android.permission.ACCESS_WIFI_STATE"/>
+        android:name="android.permission.ACCESS_WIFI_STATE"
+        android:required="true" />
     <uses-permission
-        android:required="true"
-        android:name="android.permission.CHANGE_WIFI_STATE"/>
+        android:name="android.permission.CHANGE_WIFI_STATE"
+        android:required="true" />
     <uses-permission
-        android:required="true"
-        android:name="android.permission.INTERNET"/>
+        android:name="android.permission.INTERNET"
+        android:required="true" />
 
     <uses-feature
         android:name="android.hardware.type.automotive"
@@ -27,24 +27,26 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Authentication">
+        <service
+            android:name=".network.NetworkingService"
+            android:enabled="true"
+            android:exported="true" />
+
+        <activity
+            android:name=".HostActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.Authentication.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <meta-data
             android:name="com.google.android.gms.car.application"
             android:resource="@xml/automotive_app_desc" />
-
-        <service android:name=".MyMessagingService"></service>
-
-        <receiver android:name=".MessageReadReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="de.adesso.authentication.host.ACTION_MESSAGE_READ" />
-            </intent-filter>
-        </receiver>
-        <receiver android:name=".MessageReplyReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="de.adesso.authentication.host.ACTION_MESSAGE_REPLY" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>
