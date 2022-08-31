@@ -1,32 +1,22 @@
 package de.adesso.authentication.client.network
 
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Binder
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
-import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.navigation.NavController
-import de.adesso.authentication.client.MainActivity
-import de.adesso.authentication.client.R
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.lang.ref.WeakReference
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-
-
-
-
 
 class NetworkingService : Service() {
 
@@ -35,17 +25,12 @@ class NetworkingService : Service() {
     private var hostSocket: Socket? = null
     private var inputStream: DataInputStream? = null
     private var outPutStream: DataOutputStream? = null
-    private val contextWeakReference: WeakReference<Context>? = null
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
     private val TAG = "WIFI"
-    var navController: NavController? = null
-        set(value) {
-            field = value
-        }
 
     fun waitForHost() {
         Log.i(TAG, "Waiting on Host")
-        var handler = Handler(Looper.getMainLooper())
+        val handler = Handler(Looper.getMainLooper())
         executorService.execute(kotlinx.coroutines.Runnable {
             kotlin.run {
                 try {
@@ -65,9 +50,13 @@ class NetworkingService : Service() {
 
     private fun listenOnHost(handler: Handler) {
         Log.i(TAG, "Is connected: ${hostSocket?.isConnected}")
+        Log.i(TAG,"Switching to Driving View now!")
+        val intent = Intent("Authentication")
+        intent.putExtra("message", "Switch to Driving View pls")
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
         executorService.execute(kotlinx.coroutines.Runnable {
             kotlin.run {
-                var received: String? = null
+                var received: String?
                 try {
                     // Reading the input stream for the whole lifecycle of the thread
                     while (hostSocket!!.isConnected) {
@@ -75,15 +64,9 @@ class NetworkingService : Service() {
                         Log.i(TAG, "Received: ${received!!}")
                         if (received.equals("AuthenticationRequest")) {
                             handler.post {
-                                //TODO do this earlier
-                                Log.i(TAG,"Switching to Driving View now!")
-                                navController?.navigate(R.id.action_FirstFragment_to_DrivingViewFragment)
-                                //TODO ask the Mainactivity to authenticate
                                 val intent = Intent("Authentication")
                                 intent.putExtra("message", "Authenticate pls")
                                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
-//                                DrivingViewFragment().authenticate()
-//                                requireContext().
                             }
                         }
 

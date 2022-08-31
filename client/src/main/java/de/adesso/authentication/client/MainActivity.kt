@@ -27,7 +27,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private var networkingService: NetworkingService? = null
-        get() = field
     private var isBound = false
     private var navController: NavController? = null
 
@@ -56,11 +55,13 @@ class MainActivity : AppCompatActivity() {
     private val mMessageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             // Extract data included in the Intent
-            val action = intent.action
             val message = intent.getStringExtra("message")
             Log.d("receiver", "Got message: $message")
-            if (action.equals("Authentication")){
+            if (message.equals("Authenticate pls")){
                 authenticate()
+            }
+            if (message.equals("Switch to Driving View pls")){
+                switchToDrivingView()
             }
         }
     }
@@ -77,11 +78,8 @@ class MainActivity : AppCompatActivity() {
 
         // Init navController and appBarConfig
         navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController!!.graph)
+        appBarConfiguration = AppBarConfiguration(navController?.graph!!)
         setupActionBarWithNavController(navController!!, appBarConfiguration)
-
-        // Give the navController of DrivingView to the networking Service
-        networkingService?.navController = findNavController(R.id.DrivingViewFragment)
 
         // Initialize the Biometric Manager
         bm = BiometricManager.from(this@MainActivity)
@@ -92,20 +90,21 @@ class MainActivity : AppCompatActivity() {
                 Log.e(ContentValues.TAG, "No biometric features available on this device.")
             BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
                 Log.e(ContentValues.TAG, "Biometric features are currently unavailable.")
-            //TODO: Ask User to set up credentials
         }
+    }
+    fun switchToDrivingView(){
+        navController?.navigate(R.id.action_FirstFragment_to_DrivingViewFragment)
+    }
 
+    fun waitForHost(){
         // TODO: Scan for host here? Then request shared secret for encryption?
-        binding.test.setOnClickListener {
-            networkingService?.waitForHost()
-        }
+        networkingService?.waitForHost()
     }
 
     fun authenticate() {
         executor = ContextCompat.getMainExecutor(this@MainActivity)
         biometricPrompt = BiometricPrompt(this, executor,
             object : BiometricPrompt.AuthenticationCallback() {
-                //TODO: Send information to the host on automotive device
                 override fun onAuthenticationError(
                     errorCode: Int,
                     errString: CharSequence
@@ -148,9 +147,7 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButtonText("Use account password")
             .build()
 
-        // Prompt appears when user clicks "Log in".
-        // Consider integrating with the keystore to unlock cryptographic operations,
-        // if needed by your app.
+        // Consider integrating with the keystore to unlock cryptographic operations
         biometricPrompt.authenticate(promptInfo)
     }
 

@@ -9,4 +9,6 @@
 
     <string name="hello_ConnectionFragment">Make sure both devices are on the same network then press the connection button</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="connect">CONNECT</string>
+    <string name="send">SEND</string>
 </resources>

@@ -10,7 +10,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import de.adesso.authentication.host.network.NetworkingService
 
-
 class HostActivity : AppCompatActivity() {
 
     private var networkingService: NetworkingService? = null
