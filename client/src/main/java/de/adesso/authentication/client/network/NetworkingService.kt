@@ -9,6 +9,10 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.navigation.NavController
+import de.adesso.authentication.client.MainActivity
+import de.adesso.authentication.client.R
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -18,6 +22,11 @@ import java.net.Socket
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+
+
+
+
 
 class NetworkingService : Service() {
 
@@ -29,6 +38,10 @@ class NetworkingService : Service() {
     private val contextWeakReference: WeakReference<Context>? = null
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
     private val TAG = "WIFI"
+    var navController: NavController? = null
+        set(value) {
+            field = value
+        }
 
     fun waitForHost() {
         Log.i(TAG, "Waiting on Host")
@@ -37,13 +50,14 @@ class NetworkingService : Service() {
             kotlin.run {
                 try {
                     clientSocket = ServerSocket(8090)
-                    hostSocket = clientSocket!!.accept()
-                    hostSocket!!.keepAlive = true
-                    inputStream = DataInputStream(hostSocket!!.getInputStream())
-                    Log.i(TAG, "Received first: ${inputStream!!.readUTF()}")
+                    hostSocket = clientSocket?.accept()
+                    hostSocket?.keepAlive = true
+                    inputStream = DataInputStream(hostSocket?.getInputStream())
+                    Log.i(TAG, "Received first: ${inputStream?.readUTF()}")
                 } catch (e: IOException) {
                     Log.e(TAG, Objects.requireNonNull(e.message)!!)
                 }
+                // TODO: Moving this to its own thread sets the sockets to to NULL???
                 listenOnHost(handler)
             }
         })
@@ -55,12 +69,24 @@ class NetworkingService : Service() {
             kotlin.run {
                 var received: String? = null
                 try {
-                    while (true) {
+                    // Reading the input stream for the whole lifecycle of the thread
+                    while (hostSocket!!.isConnected) {
                         received = inputStream?.readUTF()
-                        handler.post {
-                            //TODO make auth request
-                            Log.i(TAG, "Received: ${received!!}")
+                        Log.i(TAG, "Received: ${received!!}")
+                        if (received.equals("AuthenticationRequest")) {
+                            handler.post {
+                                //TODO do this earlier
+                                Log.i(TAG,"Switching to Driving View now!")
+                                navController?.navigate(R.id.action_FirstFragment_to_DrivingViewFragment)
+                                //TODO ask the Mainactivity to authenticate
+                                val intent = Intent("Authentication")
+                                intent.putExtra("message", "Authenticate pls")
+                                LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+//                                DrivingViewFragment().authenticate()
+//                                requireContext().
+                            }
                         }
+
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, Objects.requireNonNull(e.message)!!)
@@ -70,30 +96,25 @@ class NetworkingService : Service() {
     }
 
     fun sendString(toSend: String?) {
-        try {
-            Log.d(TAG, "Sending String $toSend")
-            outPutStream = DataOutputStream(hostSocket!!.getOutputStream())
-            outPutStream!!.writeUTF(toSend)
-            Toast.makeText(this, "Sent!", Toast.LENGTH_SHORT).show()
-        } catch (e: IOException) {
-            Log.e(TAG, e.message!!)
-        }
+        executorService.execute(kotlinx.coroutines.Runnable {
+            kotlin.run {
+                try {
+                    Log.d(TAG, "Sending String $toSend")
+                    outPutStream = DataOutputStream(hostSocket!!.getOutputStream())
+                    outPutStream!!.writeUTF(toSend)
+                } catch (e: IOException) {
+                    Log.e(TAG, e.message!!)
+                }
+            }
+        })
     }
 
     override fun onBind(intent: Intent): IBinder {
         return myBinder
     }
 
-    override fun onCreate() {
-        super.onCreate()
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return super.onStartCommand(intent, flags, startId)
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
     }
 
     inner class MyLocalBinder : Binder() {

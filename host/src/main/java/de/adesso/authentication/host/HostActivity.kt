@@ -43,7 +43,7 @@ class HostActivity : AppCompatActivity() {
 
     fun onSendClicked(view: android.view.View) {
         Toast.makeText(this, "Sending Authenticationrequest to Client App.", Toast.LENGTH_LONG).show()
-        networkingService?.sendString("Authenticate pls")
+        networkingService?.sendString("AuthenticationRequest")
     }
 
     override fun onStart() {

@@ -2,10 +2,12 @@ package de.adesso.authentication.host.network
 
 import android.app.Service
 import android.content.Intent
-import android.os.IBinder
-
 import android.os.Binder
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -26,53 +28,78 @@ class NetworkingService : Service() {
     private val TAG = "WIFI"
 
 
-
     fun connectToClient() {
-        try{
-            executorService.execute{
-                clientSocket!!.keepAlive = true
-                clientSocket!!.connect(InetSocketAddress("192.168.0.51", 8090!!), SOCKET_TIMEOUT)
-                Log.d(TAG, "Client connected socket - " + clientSocket!!.isConnected)
-                outputStream = DataOutputStream(clientSocket!!.getOutputStream())
-                outputStream!!.writeUTF("helloWorldAtTime: ${System.currentTimeMillis()}")
-                Log.i(TAG, "Sent!")
+        var handler = Handler(Looper.getMainLooper())
+        executorService.execute(kotlinx.coroutines.Runnable {
+            kotlin.run {
+                try {
+                    clientSocket?.keepAlive = true
+                    clientSocket?.connect(
+                        InetSocketAddress("192.168.0.51", 8090),
+                        SOCKET_TIMEOUT
+                    )
+                    Log.d(TAG, "Client connected socket - " + clientSocket?.isConnected)
+                    outputStream = DataOutputStream(clientSocket?.getOutputStream())
+                    inputStream = DataInputStream(clientSocket?.getInputStream())
+                    outputStream?.writeUTF("helloWorldAtTime: ${System.currentTimeMillis()}")
+                    Log.i(TAG, "Sent!")
+                } catch (e: IOException) {
+                    Log.e(TAG, e.message!!)
+                }
+                listenOnClient(handler)
             }
-        } catch (e: IOException) {
-            Log.e(TAG, e.message!!)
-        }
+        })
+    }
+
+    private fun listenOnClient(handler: Handler) {
+        Log.i(TAG, "Is connected: ${clientSocket?.isConnected}")
+        executorService.execute(kotlinx.coroutines.Runnable {
+            kotlin.run {
+                var received: String?
+                try {
+                    // Reading the input stream for the whole lifecycle of the thread
+                    while (clientSocket!!.isConnected) {
+                        received = inputStream?.readUTF()
+                        Log.i(TAG, "Received: ${received!!}")
+                        if (received.equals("Authentication Succeded")) {
+                            handler.post {
+                                Toast.makeText(this@NetworkingService,"Authentication on Client successful!", Toast.LENGTH_LONG).show()
+                            }
+                        }
+
+                    }
+                } catch (e: IOException) {
+                    Log.e(TAG, Objects.requireNonNull(e.message)!!)
+                }
+            }
+        })
     }
 
     fun sendString(toSend: String?) {
-        try{
-            executorService.execute{
-                Log.d(TAG, "sending string: $toSend")
-                outputStream = DataOutputStream(clientSocket!!.getOutputStream())
-                outputStream!!.writeUTF(toSend)
-                Log.i(TAG, "Sent!")
+        executorService.execute(kotlinx.coroutines.Runnable {
+            kotlin.run {
+                try {
+                    Log.d(TAG, "sending string: $toSend")
+                    outputStream = DataOutputStream(clientSocket!!.getOutputStream())
+                    outputStream!!.writeUTF(toSend)
+                    Log.i(TAG, "Sent!")
+                } catch (e: IOException) {
+                    Log.e(TAG, e.message!!)
+                }
             }
-        } catch (e: IOException) {
-            Log.e(TAG, e.message!!)
-        }
+        })
     }
 
     override fun onBind(intent: Intent): IBinder {
         return myBinder
     }
 
-    override fun onCreate() {
-        super.onCreate()
-    }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return super.onStartCommand(intent, flags, startId)
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-    }
-
     inner class MyLocalBinder : Binder() {
-        fun getService() : NetworkingService {
+        fun getService(): NetworkingService {
             return this@NetworkingService
         }
     }

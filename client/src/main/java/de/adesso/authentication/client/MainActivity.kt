@@ -1,31 +1,47 @@
 package de.adesso.authentication.client
 
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
+import android.content.*
 import android.os.Bundle
 import android.os.IBinder
+import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
-import android.view.Menu
-import android.view.MenuItem
 import de.adesso.authentication.client.databinding.ActivityMainBinding
 import de.adesso.authentication.client.network.NetworkingService
+import java.util.concurrent.Executor
+
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private var networkingService: NetworkingService? = null
+        get() = field
     private var isBound = false
+    private var navController: NavController? = null
 
+    // Lateinit for Biometric Manager etc.
+    private lateinit var bm: BiometricManager
+    private lateinit var executor: Executor
+    private lateinit var biometricPrompt: BiometricPrompt
+    private lateinit var promptInfo: BiometricPrompt.PromptInfo
+
+    // Companion object gets initialized onStart()
     private val connection = object : ServiceConnection {
-        override fun onServiceConnected(className: ComponentName,
-                                        service: IBinder
+        override fun onServiceConnected(
+            className: ComponentName,
+            service: IBinder
         ) {
             val binder = service as NetworkingService.MyLocalBinder
             networkingService = binder.getService()
@@ -36,22 +52,106 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // handler for received Intents
+    private val mMessageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent) {
+            // Extract data included in the Intent
+            val action = intent.action
+            val message = intent.getStringExtra("message")
+            Log.d("receiver", "Got message: $message")
+            if (action.equals("Authentication")){
+                authenticate()
+            }
+        }
+    }
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        //Set xml files
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         setSupportActionBar(binding.toolbar)
 
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        appBarConfiguration = AppBarConfiguration(navController.graph)
-        setupActionBarWithNavController(navController, appBarConfiguration)
+        // Init navController and appBarConfig
+        navController = findNavController(R.id.nav_host_fragment_content_main)
+        appBarConfiguration = AppBarConfiguration(navController!!.graph)
+        setupActionBarWithNavController(navController!!, appBarConfiguration)
+
+        // Give the navController of DrivingView to the networking Service
+        networkingService?.navController = findNavController(R.id.DrivingViewFragment)
+
+        // Initialize the Biometric Manager
+        bm = BiometricManager.from(this@MainActivity)
+        when (bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK)) {
+            BiometricManager.BIOMETRIC_SUCCESS ->
+                Log.d(ContentValues.TAG, "App can authenticate using biometrics.")
+            BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE ->
+                Log.e(ContentValues.TAG, "No biometric features available on this device.")
+            BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE ->
+                Log.e(ContentValues.TAG, "Biometric features are currently unavailable.")
+            //TODO: Ask User to set up credentials
+        }
 
         // TODO: Scan for host here? Then request shared secret for encryption?
         binding.test.setOnClickListener {
             networkingService?.waitForHost()
         }
+    }
+
+    fun authenticate() {
+        executor = ContextCompat.getMainExecutor(this@MainActivity)
+        biometricPrompt = BiometricPrompt(this, executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                //TODO: Send information to the host on automotive device
+                override fun onAuthenticationError(
+                    errorCode: Int,
+                    errString: CharSequence
+                ) {
+                    super.onAuthenticationError(errorCode, errString)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Authentication error: $errString", Toast.LENGTH_SHORT
+                    )
+                        .show()
+                    networkingService?.sendString("Authenticaton Error with code $errString")
+                }
+
+                override fun onAuthenticationSucceeded(
+                    result: BiometricPrompt.AuthenticationResult
+                ) {
+                    super.onAuthenticationSucceeded(result)
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Authentication succeeded!", Toast.LENGTH_SHORT
+                    )
+                        .show()
+                    networkingService?.sendString("Authentication Succeded")
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    Toast.makeText(
+                        this@MainActivity, "Authentication failed",
+                        Toast.LENGTH_SHORT
+                    )
+                        .show()
+                    networkingService?.sendString("Authentication failed")
+                }
+            })
+
+        promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("Biometric login for my app")
+            .setSubtitle("Log in using your biometric credential")
+            .setNegativeButtonText("Use account password")
+            .build()
+
+        // Prompt appears when user clicks "Log in".
+        // Consider integrating with the keystore to unlock cryptographic operations,
+        // if needed by your app.
+        biometricPrompt.authenticate(promptInfo)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -80,11 +180,15 @@ class MainActivity : AppCompatActivity() {
         Intent(this, NetworkingService::class.java).also { intent ->
             bindService(intent, connection, Context.BIND_AUTO_CREATE)
         }
+        // Register mMessageReceiver to receive messages.
+        LocalBroadcastManager.getInstance(this)
+            .registerReceiver(mMessageReceiver, IntentFilter("Authentication"));
     }
 
-    override fun onStop() {
-        super.onStop()
+    override fun onDestroy() {
+        super.onDestroy()
         unbindService(connection)
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(mMessageReceiver)
     }
 
     override fun onSupportNavigateUp(): Boolean {
