@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">host</string>
+    <string name="app_name">Authentication Host</string>
     <string name="title_activity_host">HostActivity</string>
     <!-- Strings used for fragments for navigation -->
     <string name="ConnectionFragment_label">Connection Fragment</string>

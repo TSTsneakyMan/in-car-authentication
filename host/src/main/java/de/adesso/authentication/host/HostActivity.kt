@@ -34,15 +34,21 @@ class HostActivity : AppCompatActivity() {
     }
 
     fun onConnectClicked(view: android.view.View) {
-        Toast.makeText(this, "Looking for device on network. Please make sure the client app is opened and searching.", Toast.LENGTH_LONG).show()
-        //TODO: Send to all in network
-        networkingService?.connectToClient()
-        //TODO: Wait for responses
+        if(networkingService?.getConnectionStatus() == true) {
+            Toast.makeText(this, "You are already connected!", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "Looking for device on network. Please make sure the client app is opened and searching.", Toast.LENGTH_LONG).show()
+            networkingService?.connectToClient()
+        }
     }
 
     fun onSendClicked(view: android.view.View) {
-        Toast.makeText(this, "Sending Authenticationrequest to Client App.", Toast.LENGTH_LONG).show()
-        networkingService?.sendString("AuthenticationRequest")
+        if(networkingService?.getConnectionStatus() == true) {
+            Toast.makeText(this, "Sending Authentication request to Client App.", Toast.LENGTH_LONG).show()
+            networkingService?.sendString("AuthenticationRequest")
+        } else {
+            Toast.makeText(this, "Client App not connected!", Toast.LENGTH_LONG).show()
+        }
     }
 
     override fun onStart() {

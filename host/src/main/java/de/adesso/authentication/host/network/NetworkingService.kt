@@ -27,6 +27,9 @@ class NetworkingService : Service() {
     private val SOCKET_TIMEOUT = 5000
     private val TAG = "WIFI"
 
+    fun getConnectionStatus(): Boolean? {
+        return clientSocket?.isConnected
+    }
 
     fun connectToClient() {
         var handler = Handler(Looper.getMainLooper())
@@ -58,18 +61,16 @@ class NetworkingService : Service() {
                 var received: String?
                 try {
                     // Reading the input stream for the whole lifecycle of the thread
-                    while (clientSocket!!.isConnected) {
+                    while (clientSocket?.isConnected == true) {
                         received = inputStream?.readUTF()
                         Log.i(TAG, "Received: ${received!!}")
-                        if (received.equals("Authentication Succeded")) {
-                            handler.post {
-                                Toast.makeText(this@NetworkingService,"Authentication on Client successful!", Toast.LENGTH_LONG).show()
-                            }
+                        handler.post {
+                            Toast.makeText(this@NetworkingService, "Client response: $received", Toast.LENGTH_LONG).show()
                         }
-
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, Objects.requireNonNull(e.message)!!)
+                    clientSocket?.close()
                 }
             }
         })
@@ -79,10 +80,11 @@ class NetworkingService : Service() {
         executorService.execute(kotlinx.coroutines.Runnable {
             kotlin.run {
                 try {
-                    Log.d(TAG, "sending string: $toSend")
-                    outputStream = DataOutputStream(clientSocket!!.getOutputStream())
-                    outputStream!!.writeUTF(toSend)
-                    Log.i(TAG, "Sent!")
+                    if(clientSocket?.isConnected == true){
+                        Log.d(TAG, "Trying to send string: $toSend")
+                        outputStream = DataOutputStream(clientSocket!!.getOutputStream())
+                        outputStream!!.writeUTF(toSend)
+                    } else Log.e(TAG, "Client Socket not connected")
                 } catch (e: IOException) {
                     Log.e(TAG, e.message!!)
                 }
