@@ -30,4 +30,6 @@
     <string name="DrivingViewText">Waiting on authentication request from Host</string>
     <string name="connect_msg">Press the connect button, afterwards press connect on the Host</string>
     <string name="connect">Connect</string>
+    <string name="connectionFragment">Connection Fragment</string>
+    <string name="ConnectionAlreadyEstablished">Connection already established</string>
 </resources>

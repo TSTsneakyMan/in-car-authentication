@@ -24,6 +24,14 @@ import java.util.concurrent.Executor
 
 class MainActivity : AppCompatActivity() {
 
+    final object Constants{
+        //Constants
+        final var AUTHENTICATIONBROADCASTINTENTACTION = "AuthenticationBroadCast"
+        final var MESSAGE = "Message"
+        final var AUTHENTICATINREQUEST = "AuthenticationRequest"
+        final var DRIVINGVIEWREQUEST = "DrivingViewRequest"
+    }
+
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
     private var networkingService: NetworkingService? = null
@@ -55,14 +63,10 @@ class MainActivity : AppCompatActivity() {
     private val mMessageReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent) {
             // Extract data included in the Intent
-            val message = intent.getStringExtra("message")
-            Log.d("receiver", "Got message: $message")
-            if (message.equals("Authenticate pls")){
-                authenticate()
-            }
-            if (message.equals("Switch to Driving View pls")){
-                switchToDrivingView()
-            }
+            val message = intent.getStringExtra(Constants.MESSAGE)
+            Log.d("${Constants.AUTHENTICATIONBROADCASTINTENTACTION}receiver", "Got message: $message")
+            if (message.equals(Constants.AUTHENTICATINREQUEST)) authenticate()
+            if (message.equals(Constants.DRIVINGVIEWREQUEST)) switchToDrivingView()
         }
     }
 
@@ -179,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         }
         // Register mMessageReceiver to receive messages.
         LocalBroadcastManager.getInstance(this)
-            .registerReceiver(mMessageReceiver, IntentFilter("Authentication"));
+            .registerReceiver(mMessageReceiver, IntentFilter(Constants.AUTHENTICATIONBROADCASTINTENTACTION));
     }
 
     override fun onDestroy() {
@@ -192,5 +196,13 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
+    }
+
+    fun getHostConnection(): Boolean? {
+        return networkingService?.getHostConnection()
+    }
+
+    fun getClientSocketStatus(): Boolean? {
+        return networkingService?.getClientSocketStatus()
     }
 }

@@ -17,6 +17,7 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import de.adesso.authentication.client.MainActivity
 
 class NetworkingService : Service() {
 
@@ -26,11 +27,12 @@ class NetworkingService : Service() {
     private var inputStream: DataInputStream? = null
     private var outPutStream: DataOutputStream? = null
     private val executorService: ExecutorService = Executors.newFixedThreadPool(4)
-    private val TAG = "WIFI"
+    private val TAG = "NETWORKINGSERVICE"
 
     fun waitForHost() {
         Log.i(TAG, "Waiting on Host")
         val handler = Handler(Looper.getMainLooper())
+
         executorService.execute(kotlinx.coroutines.Runnable {
             kotlin.run {
                 try {
@@ -41,8 +43,10 @@ class NetworkingService : Service() {
                     Log.i(TAG, "Received first: ${inputStream?.readUTF()}")
                 } catch (e: IOException) {
                     Log.e(TAG, Objects.requireNonNull(e.message)!!)
+                    hostSocket?.close()
+                    clientSocket?.close()
                 }
-                // TODO: Moving this to its own thread sets the sockets to to NULL???
+                // TODO: Moving this to its own thread sets the sockets to to NULL
                 listenOnHost(handler)
             }
         })
@@ -51,9 +55,12 @@ class NetworkingService : Service() {
     private fun listenOnHost(handler: Handler) {
         Log.i(TAG, "Is connected: ${hostSocket?.isConnected}")
         Log.i(TAG,"Switching to Driving View now!")
-        val intent = Intent("Authentication")
-        intent.putExtra("message", "Switch to Driving View pls")
+
+        // Asks the MainActivity to switch to DrivingViewFragment
+        val intent = Intent(MainActivity.Constants.AUTHENTICATIONBROADCASTINTENTACTION)
+        intent.putExtra(MainActivity.Constants.MESSAGE, MainActivity.Constants.DRIVINGVIEWREQUEST)
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
+
         executorService.execute(kotlinx.coroutines.Runnable {
             kotlin.run {
                 var received: String?
@@ -64,8 +71,8 @@ class NetworkingService : Service() {
                         Log.i(TAG, "Received: ${received!!}")
                         if (received.equals("AuthenticationRequest")) {
                             handler.post {
-                                val intent = Intent("Authentication")
-                                intent.putExtra("message", "Authenticate pls")
+                                val intent = Intent(MainActivity.Constants.AUTHENTICATIONBROADCASTINTENTACTION)
+                                intent.putExtra(MainActivity.Constants.MESSAGE, MainActivity.Constants.AUTHENTICATINREQUEST)
                                 LocalBroadcastManager.getInstance(this).sendBroadcast(intent)
                             }
                         }
@@ -73,6 +80,8 @@ class NetworkingService : Service() {
                     }
                 } catch (e: IOException) {
                     Log.e(TAG, Objects.requireNonNull(e.message)!!)
+                    hostSocket?.close()
+                    clientSocket?.close()
                 }
             }
         })
@@ -98,6 +107,14 @@ class NetworkingService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    fun getHostConnection(): Boolean? {
+        return hostSocket?.isConnected
+    }
+
+    fun getClientSocketStatus(): Boolean? {
+        return clientSocket?.isBound
     }
 
     inner class MyLocalBinder : Binder() {
